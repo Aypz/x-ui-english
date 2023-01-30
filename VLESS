@@ -1,0 +1,224 @@
+How to install VLESS with XTLS based on xray core (updated x-ui)
+Leave a Comment / create a vpn / By melon
+vless
+  Contents 
+
+What is vless?
+Choosing VPS
+Setting up vless xtls
+Managing vless
+vless Clients
+ 
+What is vless?
+Vless is an an updated version of vmess protocol, which has been around for a while. After several developers found flaws on vmess protocol, and showed that vmess protocol can be detected by DPI, vless was developed. I should note that, it is the simple vmess tcp combination that can be easily detected, vmess ws+tls is still a good and secure option.
+
+Additionally, xray core has been developed as an alternative to standard v2ray core. According to developers, xray is more stable, better for UDP gaming and %30 faster than v2ray.
+
+Recently, v2-ui script has been updated to use xray core, and now we can fully enjoy the xray vless combination.
+
+Update 2021:
+
+As the developer of v2-ui, changed the v2ray panel to x-ui, which is based on xray core, this tutorial is updated accordingly. The new panel has some design and functionality changes. Most of the installation is same as before. The x-ui panel is only in Chinese right now, but you can use google translate to understand it.
+
+Note: I will update screenshots later.
+
+ 
+Choosing a VPS
+You should:
+Before making payment ping an IP address of the VPS provider
+Prefer hourly billing VPS services
+Prefer less popular VPS services
+Check for ratings and user reviews
+Prefer KVM virtualization
+Use a VPN when using Putty or an alternative SSH programme, to prevent IP address blocking
+I can suggest these VPS services:
+
+Vultr – hourly billing – starting from $3.5 per month – vultr.com (get a $100 bonus)
+DigitalOcean – hourly billing – starting from $5 per month – digitalocean.com (get a $100 bonus)
+RackNerd – monthly billing – starting from $2 per month (annual subscription) – racknerd.com
+Contabo – monthly billing – starting from € 3.99 per month  – contabo.com
+CloudCone – hourly billing – starting from $4.2 per month – cloudcone.com
+ 
+Setting up vless xtls
+Note: If you are familiar with v2ray ws+tls tutorial, feel free to skip to Managing Vless.
+
+Thanks to the one-command script by sprov065, you can install vless easily, even if you are not familiar with Linux commands.
+
+You need to have at least Ubuntu 16, Debian 8 or CentOS 7.
+
+This guide will be for Debian and Ubuntu.
+
+The setup consists of two parts. First, the x-ui script installation, and the second is getting a free SSL certificate from Let’s Encrypt for TLS, and enabling CDN from Cloudflare. The second part is only needed if you wish to use tls and cdn.
+
+Q: What is difference between TLS CDN and just TLS? 
+
+A: Your  VPS IP address is hidden by Cloudflare IP when using TLS+CDN, but speed could be slower compared to without CDN.
+
+Part one – install the script
+1. First make updates and upgrades, and install curl
+
+sudo apt-get update -y 
+sudo apt-get upgrade -y
+sudo apt install curl -y
+2. Run the x-ui script
+
+bash <(curl -Ls https://raw.githubusercontent.com/vaxilu/x-ui/master/install.sh)
+a) First question asks whether you agree. Press y.
+
+   确认是否继续?[y/n]:y
+
+b)Second one asks for account username. Write whatever you want as when you log in.
+
+   请设置您的账户名:melon
+
+c)Third one asks for account password. 
+
+   请设置您的账户密码:melon123 
+
+d) The last question asks you to write a port number for your user panel.
+
+    请设置面板访问端口:12345
+
+And that is it for the installation part.
+
+x-ui installed
+ 
+Part two – get the SSL Certificates
+You will need:
+
+A domain name
+A Cloudflare account
+Point your nameservers to Cloudflare
+Point your VPS IP to your domain name
+To get an SSL certificate, you need a domain name (www.example.com), preferably a paid one from providers like namecheap or porkbun, and a Cloudflare account. Both Porkbun and Namecheap have free Whois Guard. When it comes to pricing, Porkbun has an upper hand, you can find domain names for under $3 per year. Please do check the renewal prices before purchasing a domain.
+
+1. Nameservers configuration
+
+When adding your domain name to your Cloudflare account, Cloudflare will ask you to redirect your nameservers. It will be something like this:
+
+example1.ns.cloudflare.com
+example2.ns.cloudflare.com
+You need to copy those from Cloudflare to your domain name registrar (ex: namecheap.com). On Namecheap you can find it on Domain List > Manage > Nameservers. Change the DNS to Custom DNS and add Cloudflare nameservers. After a while, Cloudflare will inform you that the setup is done.,
+
+cloudflare_account_setup
+cloudflare_account_setup2
+namecheap_DNS
+2. Connecting your domain name to the VPS IP address
+On Cloudflare,
+Go to DNS Management
+Press “Add Record”
+Type your sub-domain name or domain name to “Name”  (ex: write test for test.example.com or @ for example.com)
+Write your VPS IP to “IPv4 address”.
+Make sure the color of “Proxy status” is not orange and says DNS Only.
+And lastly change SSL/TLS mode to Full or Full (strict).
+cloudflare_DNS_only
+cloudflare_SSL
+3. Getting SSL Certificate
+Now SSH to your VPS using Putty.
+
+Install certbot.
+sudo apt install software-properties-common
+sudo add-apt-repository ppa:certbot/certbot
+sudo apt-get install certbot -y
+ 2. Use certbot to get SSL Certificate. Use your own email address and domain name.
+
+sudo certbot certonly --standalone --preferred-challenges http --agree-tos --email your-email-address -d test.example.com 
+3. If you get a note like “Congratulations!..”, it means that now you have SSL certificate for your  domain/sub-domain.
+
+In the text you will find destinations of your certificate file and key file. Copy them, as you will need  them on web panel. It will be something like this:
+
+/etc/letsencrypt/live/test.example.com/fullchain.pem
+/etc/letsencrypt/live/test.example.com/privkey.pem
+Note:
+
+If you face errors and cannot get the certificate, please make sure that your firewall is listening to ports 80 and 443, you have pointed your VPS IP address to the domain name and the Cloudflare CDN is off.
+
+4. Last, the SSL certificate expires in 90 days, to make sure to reew it before expiration. Here is a manual renewal command.
+
+certbot renew --force-renewal
+LetsEncrypt_SSL
+ 
+Managing  vless
+Adding a user
+You can go to x-ui web panel typing your IP address (or domain name) and the port (12345 in my case) on a browser. You can log in using your username and password.
+
+http://"your-ip-address":12345
+To add a user, you need to go to “accounts”, press add button and fill in the blanks according to  your preferences.
+
+There are various combinations, we will be using most preferred VLESS TCP XTLS combination.
+
+Remark – here you can write anything you want
+Protocol – vless
+Listening IP, Port and ID (UUID) generated automatically. You can change them manually, as well. It is advised to use port 443.
+Flow – xtls-rprx-direct
+Transport – TCP
+Turn on TLS, and XTLS
+Domain – write your domain name or sub-domain name
+You can choose certificate file path and copy the file paths, or copy the certificate and key directly to certificate file content
+Copy and paste certificate and key file paths, respectively
+Press “Add”
+And that is it. You can add, edit, delete users within seconds, and check bandwidth usage using x-ui web-panel.
+
+You are not only limited to vless with this web panel, you can configure and test various combinations of vmess, trojan and shadowsocks.
+
+I would like to thank vaxilu and other developers for this easy multi-user management panel.
+
+webpanel_1
+v2ui_panel02
+screen2x_pm
+ 
+Bonus
+BBR script
+If you think your vless has slow speed, or have an older Linux version on your VPS, you can use bbr script by teddysun, to install google bbr.
+
+wget -N --no-check-certificate https://github.com/teddysun/across/raw/master/bbr.sh && chmod +x bbr.sh && bash bbr.sh
+ 
+Installing vless to Your Devices
+vless apps for Android
+v2RayNG
+napstenetV
+ 
+vless apps for iOS
+ShadowRocket
+LanceX
+vless clients for Windows
+v2rayN
+Netch
+Qv2ray
+vless clients for macOS
+Shadowrocket (M1)
+v2rayXS
+Qv2ray
+ 
+VPN services that offer vless
+Sometimes IP blocks are so often that you may want a solution without a hassle and go for a paid option. If that is the case for you, Wannaflix offers vless, along with other VPN protocols. You can read my brief review about the VPNs on the blog post the Best Stealth VPNs.
+
+Wanna check other VPNs? Head over to the VPN Comparison Table, and find the best VPN that fits you.
+
+Post navigation
+Next Post →
+Related Posts
+v2ray
+How To Setup v2ray Websocket(WS)+TLS+CDN on a VPS (updated x-ui)
+Leave a Comment
+Your email address will not be published. Required fields are marked *
+
+
+Type here..
+Type here..
+Name*
+Name*
+Email*
+Email*
+Website
+Website
+ Save my name, email, and website in this browser for the next time I comment.
+
+
+find a vpn
+create a vpn
+SUBSCRIBE
+find a vpn
+create a vpn
+Copyright © 2023 privacymelon | Powered by privacymelon
+
